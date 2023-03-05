@@ -49,17 +49,7 @@ extreme cost reduction, and a significantly lower amount of dev time for data-or
 This repo is for load tests only, between Memphis station to BigQuery table.
 The application consumes messages in a stream manner, inserting each message to a newly created BigQuery dataset and table named `memphisLoadTest`
 
-## Getting started
-### Step 1: Install [node.js](https://nodejs.org/en/download/) with npm
-### Step 2: Clone this repo
-### Step 3: Install app dependencies using `npm install`
-### Step 4: Run the app
-Example:
-```shell
-node consumer.js --memphis_hostname="memphis.test.com" --memphis_username="bigquery" --memphis_connectionToken="XrAAAAw6rgm8888PNNTy" --memphis_station="bigquery-load-test" --bigQuery_projectId="project-1234"
-```
-
-## Important!
+## Important before getting started!
 1. This application is for tests only!<br>
 In order for it to work properly, the consumed events **must**<br>
 be complient with the following schema -
@@ -83,4 +73,14 @@ be complient with the following schema -
     { name: 'is__identified', type: 'STRING' },
     { name: 'bq_ingested_timestamp', type: 'TIMESTAMP' },
 ```
-2. A GCP `key.json` must be provided and located within the app root directory
+2. After cloning the repo, a GCP `key.json` must be provided and located within this app root directory
+
+## Getting started
+### Step 1: Install [node.js](https://nodejs.org/en/download/) with npm
+### Step 2: Clone this repo
+### Step 3: Install app dependencies using `npm install`
+### Step 4: Run the app
+Example:
+```shell
+node consumer.js --memphis_hostname="memphis.test.com" --memphis_username="bigquery" --memphis_connectionToken="XrAAAAw6rgm8888PNNTy" --memphis_station="bigquery-load-test" --bigQuery_projectId="project-1234"
+```

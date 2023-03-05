@@ -91,7 +91,8 @@ async function fillBQconfig() {
             console.log(`- Dataset ${dataset.id} created.`);
         }
     } catch (ex) {
-        console.log(ex)
+        console.log(ex.errors[0].message)
+        process.exit(5)
     }  
     try {
         // Creates the table
@@ -108,7 +109,10 @@ async function fillBQconfig() {
             fillBQconfigRan = true
             return
         }
-        else console.log(ex)
+        else {
+            console.log(ex)
+            process.exit(6)
+        }
     }  
 }
 
