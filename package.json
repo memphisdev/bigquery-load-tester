@@ -1,0 +1,27 @@
+{
+  "name": "bigquery-load-tester",
+  "version": "1.0.0",
+  "description": "",
+  "main": "consumer.js",
+  "scripts": {
+    "test": "node consumer.js --memphis_hostname='memphis.dev' --memphis_username='root' --memphis_connectionToken='memphis' --memphis_station='test_station' --bigQuery_projectId='posthog-374908'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/memphisdev/bigquery-load-tester.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/memphisdev/bigquery-load-tester/issues"
+  },
+  "homepage": "https://github.com/memphisdev/bigquery-load-tester#readme",
+  "dependencies": {
+    "@google-cloud/bigquery": "^6.1.0",
+    "cluster": "^0.7.7",
+    "fs": "^0.0.1-security",
+    "memphis-dev": "^0.5.5",
+    "process": "^0.11.10"
+  }
+}

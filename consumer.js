@@ -3,6 +3,39 @@ const os = require("os");
 const cluster = require("cluster");
 const { memphis } = require('memphis-dev');
 const {BigQuery} = require('@google-cloud/bigquery');
+const process = require('process');
+const fs = require('fs');
+const key_file = 'key.json';
+let memphis_hostname, memphis_username, memphis_connectionToken, memphis_station;
+let bigQuery_projectId;
+
+if(process.argv.length < 7){
+    console.log("\nMissing arguments! Example:\n")
+    console.log('node consumer.js --memphis_hostname="memphis.dev" --memphis_username="root" --memphis_connectionToken="memphis" --memphis_station="test_station" --bigQuery_projectId="loadtest12"')
+    console.log('\nPlease make sure you preserve the arguments order of appearence')
+    process.exit(3)
+}
+
+if (!fs.existsSync(key_file)) {
+  console.log('"key.json" could not be found in the root directory');
+  process.exit(3)
+}
+
+function identify_arguments() {
+    //[2] memphis_hostname, [3] memphis_username, [4] memphis_connectionToken, [5] memphis_station, [6] bigQuery_projectId, 
+    try{
+        console.log("- Initilize app arguments")
+        memphis_hostname = process.argv[2].split("=")[1]
+        memphis_username = process.argv[3].split("=")[1]
+        memphis_connectionToken = process.argv[4].split("=")[1]
+        memphis_station = process.argv[5].split("=")[1]
+        bigQuery_projectId = process.argv[6].split("=")[1]
+    } catch (ex) {
+        console.log("Something happen during arguments identification. Exit.")
+        console.log(ex)
+        process.exit(4)
+    }  
+}
 
 const clusterWorkerSize = os.cpus().length;
 let bigqueryClient;
@@ -10,7 +43,6 @@ let fillBQconfigRan = false;
 let datasetId = "memphisLoadTest";
 let tableId = "memphisLoadTest";
 let memphisConnection;
-const memphis_station = "enriched_data";
 const insertOptions = {
     createInsertId: false,
     partialRetries: 0,
@@ -36,18 +68,12 @@ const BIG_QUERY_TABLE_FIELDS = [
     { name: 'is__identified', type: 'STRING' },
     { name: 'bq_ingested_timestamp', type: 'TIMESTAMP' },
 ]
-const rows = [];
-const object = JSON.parse('{"distinct__ids": "1863ac817a022f-03dc9795fbd578-16525635-1d73c0-1863ac817a12306","distinct_id": "1863ac817a022f-03dc9795fbd578-16525635-1d73c0-1863ac817a12306","elements": "16525635-1d73c0-1863ac817a12306","elements_chain": "","event": "$pageleave","id": "01869def-3cbd-0001-5a5a-a92b6b31df78","is__identified": "false","person": "1863ac817a022f-03dc9795fbd578-16525635-1d73c0-1863ac817a12306","properties": "$active_feature_flags","timestamp": "2023-03-01T16:09:06.972000+00:00","type": "main-page"}')
-const event = { 
-    json: object
-}
-rows.push(event)
 
 async function fillBQconfig() {
     try {
         bigqueryClient = new BigQuery({
-            keyFilename: 'key.json',
-            projectId: "posthog-374908"
+            keyFilename: key_file,
+            projectId: bigQuery_projectId
         });
         var datasetCreated = false
         console.log("// Fetching BigQuery data")
@@ -75,22 +101,22 @@ async function fillBQconfig() {
         .createTable(tableId,{ schema: BIG_QUERY_TABLE_FIELDS})
         console.log(`- Table ${table.id} created.`)
 
-        console.log('- Insert new record')
-        await bigqueryClient
-        .dataset(datasetId)
-        .table(tableId)
-        .insert(rows,insertOptions)
+        // console.log('- Insert new record')
+        // await bigqueryClient
+        // .dataset(datasetId)
+        // .table(tableId)
+        // .insert(rows,insertOptions)
 
         fillBQconfigRan = true
         return
     } catch (ex) {
         if(ex.code == 409) {
             console.log(`- Table ${tableId} already exist`)
-            console.log('- Insert new record')
-            await bigqueryClient
-            .dataset(datasetId)
-            .table(tableId)
-            .insert(rows, insertOptions)
+            // console.log('- Insert new record')
+            // await bigqueryClient
+            // .dataset(datasetId)
+            // .table(tableId)
+            // .insert(rows, insertOptions)
             fillBQconfigRan = true
             return
         }
@@ -98,67 +124,31 @@ async function fillBQconfig() {
     }  
 }
 
-// const firstPull = async () => {
-//     // This function will only run once, and only during program initilization 
-//     // to define the proper schema on the BigQuery side
-//     try {
-//         var sample_message;
-//         memphisConnection = await memphis.connect({
-//             host: 'broker.sandbox.memphis.dev',
-//             username: 'bigquery',
-//             connectionToken: 'XrHmszw6rgm8IyOPNNTy'
-//         });
-//         const msgs = await memphis.fetchMessages({
-//             stationName: memphis_station,
-//             consumerName: 'bigquery-tester',
-//             consumerGroup: 'bigquery-tester4', // defaults to the consumer name.
-//             batchSize: 1, // defaults to 10
-//             batchMaxTimeToWaitMs: 5000, // defaults to 5000
-//             maxAckTimeMs: 30000, // defaults to 30000
-//             maxMsgDeliveries: 10, // defaults to 10
-//             genUniqueSuffix: false, // defaults to false
-//             startConsumeFromSequence: 1, // start consuming from a specific sequence. defaults to 1
-//             lastMessages: -1 // consume the last N messages, defaults to -1 (all messages in the station)
-//         });
-//         console.log("- Pulling a small batch of messages to define BQ table schema")
-//         // console.log(message)
-//         if(msgs.length>0){
-//             msgs[0].ack();
-//             sample_message = JSON.parse(msgs[0].getData().toString());
-//             if (memphisConnection) memphisConnection.close();
-//             console.log("- Building the schema")
-//             console.log(sample_message)
-//             // BIG_QUERY_TABLE_FIELDS = await GenerateSchema.bigquery(sample_message)
-//             await fillBQconfig(sample_message);
-//         }
-//     } catch (ex) {
-//         console.log(ex);
-//         if (memphisConnection) memphisConnection.close();
-//     }
-// }
-
 // Run the server!
-const start = async () => {
+async function start() {
+    var rows;
     try {
         memphisConnection = await memphis.connect({
-            host: 'broker.sandbox.memphis.dev',
-            username: 'bigquery',
-            connectionToken: 'XrHmszw6rgm8IyOPNNTy'
+            host: memphis_hostname,
+            username: memphis_username,
+            connectionToken: memphis_connectionToken
         });
 
         const consumer = await memphisConnection.consumer({
             stationName: memphis_station,
-            consumerName: 'bigquery-tester',
-            consumerGroup: 'bigquery-tester4',
-            batchSize: 10,
-            genUniqueSuffix: false,
+            consumerName: 'bigquery-tester-new',
+            consumerGroup: 'bigquery-tester-new',
+            batchSize: 50,
+            genUniqueSuffix: true,
         });
-
-        consumer.setContext({ key: "value" });
-        while(!fillBQconfigRan){}
+        console.log("- Start consuming messages and insert them into BigQuery")
         consumer.on('message', (message, context) => {
-            message.getData().toString();
+            rows = [{json: message.getDataAsJson()}]; // get data as json
             message.ack();
+            bigqueryClient
+            .dataset(datasetId)
+            .table(tableId)
+            .insert(rows, insertOptions)
         });
 
         consumer.on('error', (error) => {});
@@ -168,10 +158,11 @@ const start = async () => {
     }
 }
 
+async function main(){
 if (clusterWorkerSize > 1) {
     if (cluster.isMaster) {
-        // for (let i=0; i < clusterWorkerSize; i++) {
-        for (let i=0; i < 1; i++) {
+        for (let i=0; i < clusterWorkerSize; i++) {
+        // for (let i=0; i < 1; i++) {
             cluster.fork();
         }
 
@@ -179,18 +170,14 @@ if (clusterWorkerSize > 1) {
             console.log("Worker", worker.id, " has exited.")
         })
     } else {
-        if (!fillBQconfigRan) {
-            fillBQconfig();
-            // start();
-        } else {
-            // start();
-        }
+        await identify_arguments();
+        await fillBQconfig();
+        start();
     }
 } else {
-    if (!fillBQconfigRan) {
-        fillBQconfig();
-        // start();
-    } else {
-        // start();
-    }
+    await identify_arguments();
+    await fillBQconfig();
+    start();
 }
+}
+main()
