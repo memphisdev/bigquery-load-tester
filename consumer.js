@@ -100,23 +100,11 @@ async function fillBQconfig() {
         .dataset(datasetId)
         .createTable(tableId,{ schema: BIG_QUERY_TABLE_FIELDS})
         console.log(`- Table ${table.id} created.`)
-
-        // console.log('- Insert new record')
-        // await bigqueryClient
-        // .dataset(datasetId)
-        // .table(tableId)
-        // .insert(rows,insertOptions)
-
         fillBQconfigRan = true
         return
     } catch (ex) {
         if(ex.code == 409) {
             console.log(`- Table ${tableId} already exist`)
-            // console.log('- Insert new record')
-            // await bigqueryClient
-            // .dataset(datasetId)
-            // .table(tableId)
-            // .insert(rows, insertOptions)
             fillBQconfigRan = true
             return
         }
